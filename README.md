@@ -4,7 +4,7 @@ disk friendly by reading documents into memory and serving them from there. It w
 also search for a file on the disk if it doesn't exist in the cache, and caches it if
 it has appeared. It doesn't return 404 unless the file really _really_ doesn't exist.
 
-# Implementation
+## Implementation
 It's rather simple, really.
 
 First we need an appropriate data structure. I chose golang's map type since it's well
@@ -29,7 +29,7 @@ The ```size``` and ```count``` variables are used mainly for logging, they don't
 However, these could be used to limit the size and count of files read into the cache, but that's beyond the scope
 of what I was trying to accomplish in this project
 
-# Automatic Document Refreshing
+## Automatic Document Refreshing
 Another great feature would be to watch the document directory for changes made to the documents themselves, and
 refresh the cache. This could be done with inotify (which golang already has a great package for) and a little bit
 of tinkering
@@ -37,23 +37,32 @@ of tinkering
 This would really make this little server great, since you could use it to quickly and efficiently prototype
 webpages without the need to reload the server every time you make a change. I Plan on implementing this, so stay tuned.
 
-# Handling Requests
+## Handling Requests
 Another dead simple solution.
 ```
 func RootHandle(res http.ResponseWriter, req *http.Request) {
 	var reply *template.Template
+	var docName string
 
 	log.Println("<< GET / -", req.UserAgent())
-	if req.URL.Path[1:] == "" {
-		reply = cache.Docs.GetDoc("index.html")
-	} else {
-		reply = cache.Docs.GetDoc(req.URL.Path[1:])
-	}
 
-	data := &PageData{"http-server"}
+	if req.URL.Path[1:] == "" {
+		docName = "index.html"
+	} else {
+		docName = req.URL.Path[1:]
+	}
+	reply = cache.Docs.GetDoc(docName)
+
+	getter, err := data.GetGetter(docName)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := getter.Get(req.UserAgent())
 	reply.Execute(res, data)
 }
 ```
+
 This simple handler can be used as a 'catch-all' route. First we check if there's even a document name in the url, if there
 isn't, we simply return the ```index.html`` document. If there does happen to be a document name, we get it from the cache (or disk)
 and return it instead.
@@ -61,7 +70,8 @@ and return it instead.
 html/document allows us to actually pass data to the documents for rendering, so we use it instead of a raw html file.
 This is great, but not complete. Each page may need different data, and trying to figure out what data goes with what document requires a little more work which should (and will) be in its own package.
 
-The way I see it is we can create "data getters" and register them with each document, instead of hardcoding them in the actual route handlers. This will keep things organized and will allow us to get different kinds of data in different ways (e.g redis, mongodb, sql or the server itself) making the server a little more adaptable. 
+The way I see it is we can create "data getters" and register them with each document, instead of hardcoding them in the actual route handlers. This will keep things organized and will allow us to get different kinds of data in different ways (e.g redis, mongodb, sql or the server itself) making the server a little more adaptable.
+(Implemented, see below)
 
 ## Static Files
 No website is complete without a good stylesheet, maybe some images and javascript for good measure.
@@ -74,6 +84,48 @@ func StaticHandle(res http.ResponseWriter, req *http.Request) {
 ```
 See? All we have to do is use ```http.ServeFile()``` to return the contents of the requested file or directory.
 Short and sweet.
+
+## Getting data with data-getters
+Webpages are very data-driven. What's a webpage without data? Sure you technically *could* hardcode things into the 
+raw html file, but this is 2015, not the 90's.I've come up with a solution. The first thing that occured to me was 
+that different pages need different data, and that data might need to be retrieved in different ways. This is another great use for the all-powerful map data structure (no language should be without it).
+
+We can solve this little problem with a simple struct and a global variable that holds the structs:
+
+```
+type Getter struct {
+	Name string
+	Get  GetterFunc
+}
+
+var Getters map[string]*Getter
+```
+
+To register a data-getter, we can simple make sure it doesn't already exist, then add it to the map:
+```
+func RegisterGetter(name string, get GetterFunc) error {
+	if getterExists(name) == true {
+		return fmt.Errorf("Data-getter already exists for document: %s", name)
+	} else {
+		log.Println("\t++ Registering data getter ", get, " for", name)
+		Getters[name] = NewGetter(name, get)
+	}
+	return nil
+}
+```
+
+and to grab one of these data-getters:
+```
+func GetGetter(name string) (*Getter, error) {
+	if getterExists(name) == false {
+		return nil, fmt.Errorf("No data-getter exists for document: %s", name)
+	} else {
+		return Getters[name], nil
+	}
+}
+```
+
+This makes it a lot easier to get data in different ways (e.g from SQL, mongodb or redis). These getters are defined in
 
 # Conclusion
 This was actually a spur of the moment idea, and something I've toyed with before but never really felt I had accomplished
