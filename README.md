@@ -26,7 +26,7 @@ When we want to fill this cache at startup, we step through the document directo
 ```path``` and enumerate each of the documents, storing them in this cache.
 
 The ```size``` and ```count``` variables are used mainly for logging, they don't really affect much else.
-However, the could be used to limit the size and count of files read into the cache, but that's beyond the scope
+However, these could be used to limit the size and count of files read into the cache, but that's beyond the scope
 of what I was trying to accomplish in this project
 
 # Automatic Document Refreshing
@@ -41,19 +41,27 @@ webpages without the need to reload the server every time you make a change. I P
 Another dead simple solution.
 ```
 func RootHandle(res http.ResponseWriter, req *http.Request) {
-    var reply string
-    log.Println("<< GET / -", req.UserAgent())
-    if req.URL.Path[1:] == "" {
-        reply = cache.Docs.GetDoc("index.html")
-    } else {
-        reply = cache.Docs.GetDoc(req.URL.Path[1:])
-    }
-    io.WriteString(res, reply)
+	var reply *template.Template
+
+	log.Println("<< GET / -", req.UserAgent())
+	if req.URL.Path[1:] == "" {
+		reply = cache.Docs.GetDoc("index.html")
+	} else {
+		reply = cache.Docs.GetDoc(req.URL.Path[1:])
+	}
+
+	data := &PageData{"http-server"}
+	reply.Execute(res, data)
 }
 ```
 This simple handler can be used as a 'catch-all' route. First we check if there's even a document name in the url, if there
 isn't, we simply return the ```index.html`` document. If there does happen to be a document name, we get it from the cache (or disk)
 and return it instead.
+
+html/document allows us to actually pass data to the documents for rendering, so we use it instead of a raw html file.
+This is great, but not complete. Each page may need different data, and trying to figure out what data goes with what document requires a little more work which should (and will) be in its own package.
+
+The way I see it is we can create "data getters" and register them with each document, instead of hardcoding them in the actual route handlers. This will keep things organized and will allow us to get different kinds of data in different ways (e.g redis, mongodb, sql or the server itself) making the server a little more adaptable. 
 
 ## Static Files
 No website is complete without a good stylesheet, maybe some images and javascript for good measure.
