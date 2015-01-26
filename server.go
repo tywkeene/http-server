@@ -2,12 +2,16 @@ package main
 
 import (
 	"github.com/SaviorPhoenix/http-server/cache"
+	"github.com/SaviorPhoenix/http-server/data"
 	"github.com/SaviorPhoenix/http-server/handles"
 	"log"
 	"net/http"
 )
 
 func init() {
+	//Initialize the data-getter map for the documents
+	data.InitGetters()
+
 	//Register our path handles
 	handles.Register()
 
@@ -16,6 +20,7 @@ func init() {
 	if err := cache.InitCache("./docs/"); err != nil {
 		panic(err)
 	}
+
 }
 
 func main() {
