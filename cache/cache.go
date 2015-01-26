@@ -2,16 +2,18 @@ package cache
 
 import (
 	"errors"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 type DocCache struct {
-	docs  map[string]string //map of documents in 'path', indexed by filename
-	size  int64             //Size of the document in bytes
-	count int               //Amount of documents in the cache
-	path  string            //Path to the document directory
+	docs  map[string]*template.Template //map of documents in 'path', indexed by filename
+	size  int64                         //Size of the document in bytes
+	count int                           //Amount of documents in the cache
+	path  string                        //Path to the document directory
 }
 
 var Docs *DocCache // Represents the global document cache
@@ -27,7 +29,7 @@ func InitCache(path string) error {
 
 //Allocated a new DocCache with path 'path'
 func NewDocCache(path string) *DocCache {
-	return &DocCache{make(map[string]string), 0, 0, path}
+	return &DocCache{make(map[string]*template.Template), 0, 0, path}
 }
 
 //Builds a cache of documents from the files in the 'docDir' path
@@ -40,21 +42,29 @@ func (cache *DocCache) BuildCache() error {
 	}
 
 	for _, file := range list {
-		log.Println("\t++", file.Name())
+		log.Println("\t++ Cache:", file.Name())
 		cache.CacheDoc(file.Name())
 	}
 
-	log.Println("\t!!", cache.count, "file(s) (", cache.size, " bytes) in", cache.path)
+	log.Println("\t!! Cached", cache.count, "file(s) (", cache.size, " bytes) in", cache.path)
 	return nil
 }
 
 //Adds the document 'name' to the cache
 func (cache *DocCache) CacheDoc(name string) error {
+	if strings.HasSuffix(name, ".html") == false {
+		log.Println("\t!! Ignore:", name)
+		return errors.New("Refusing to cache non .html file")
+	}
 	data, err := ioutil.ReadFile(cache.path + name)
 	if err != nil {
 		return err
 	}
-	cache.docs[name] = string(data)
+
+	cache.docs[name], err = template.New(name).Parse(string(data))
+	if err != nil {
+		return err
+	}
 	stat, _ := os.Stat(cache.path + name)
 	cache.size += stat.Size()
 	cache.count++
@@ -78,9 +88,7 @@ func (cache *DocCache) IsOnDisk(name string) bool {
 // If the document isn't in the cache, but on the disk, the document is read and
 //	added to the cache and returned
 // If the document isn't in the cache or on the disk, return 404
-func (cache *DocCache) GetDoc(name string) string {
-	const fourOhfourStr string = `<html><center><h1>404</h1><body>File not in
-	cache or on disk<body></center></html>`
+func (cache *DocCache) GetDoc(name string) *template.Template {
 
 	log.Println("\t", name, "?? Querying cache")
 	//File is in cache, simply return it
@@ -91,20 +99,15 @@ func (cache *DocCache) GetDoc(name string) string {
 		//cache and return it if it is
 	} else if cache.IsOnDisk(name) == true {
 		log.Println("\t", name, "!! Not in cache")
-		data, err := ioutil.ReadFile(cache.path + name)
-		if err != nil {
-			log.Println("\t", name, "!! Not on disk")
-		} else {
-			log.Println("\t", name, "++ On disk/Found")
-			log.Println("\t", name, "!! Caching")
+		log.Println("\t", name, "++ On disk/Found")
+		log.Println("\t", name, "!! Caching")
 
-			cache.CacheDoc(name)
-			return string(data)
-		}
+		cache.CacheDoc(name)
+		return cache.docs[name]
 	} else {
 		//No luck in cache or on disk, return 404
 		log.Println("\t", name, "-- Not cached/Not on disk")
-		return fourOhfourStr
+		return nil
 	}
-	return fourOhfourStr
+	return nil
 }

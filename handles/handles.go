@@ -2,10 +2,22 @@ package handles
 
 import (
 	"github.com/SaviorPhoenix/http-server/cache"
-	"io"
+	"html/template"
 	"log"
 	"net/http"
 )
+
+type PageData struct {
+	Title string
+}
+
+func Register() {
+	//Catch all handler
+	http.HandleFunc("/", RootHandle)
+
+	//For static images/stylesheets/files
+	http.HandleFunc("/static/", StaticHandle)
+}
 
 //Handles static file requests.
 func StaticHandle(res http.ResponseWriter, req *http.Request) {
@@ -17,7 +29,7 @@ func StaticHandle(res http.ResponseWriter, req *http.Request) {
 // If no document name is in the url, (i.e localhost/) we return index.html
 // If there is a document name then we look it up and return it
 func RootHandle(res http.ResponseWriter, req *http.Request) {
-	var reply string
+	var reply *template.Template
 
 	log.Println("<< GET / -", req.UserAgent())
 	if req.URL.Path[1:] == "" {
@@ -25,5 +37,7 @@ func RootHandle(res http.ResponseWriter, req *http.Request) {
 	} else {
 		reply = cache.Docs.GetDoc(req.URL.Path[1:])
 	}
-	io.WriteString(res, reply)
+
+	data := &PageData{"http-server"}
+	reply.Execute(res, data)
 }
