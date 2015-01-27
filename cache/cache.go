@@ -80,7 +80,7 @@ func (cache *DocCache) IsCached(name string) bool {
 //Returns true if doc 'name' is on disk, false otherwise
 func (cache *DocCache) IsOnDisk(name string) bool {
 	_, err := os.Stat(name)
-	return err != nil
+	return err == nil
 }
 
 //Looks for the document 'name' in the cache, then on the disk, then gives up and returns 404
