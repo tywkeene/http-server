@@ -125,7 +125,7 @@ func GetGetter(name string) (*Getter, error) {
 }
 ```
 
-This makes it a lot easier to get data in different ways (e.g from SQL, mongodb or redis). These getters are defined in
+This makes it a lot easier to get data in different ways (e.g from SQL, mongodb or redis). These getters are defined in getters/getters.go and are registered in handles/handles.go when we register our route handlers.
 
 # Conclusion
 This was actually a spur of the moment idea, and something I've toyed with before but never really felt I had accomplished
