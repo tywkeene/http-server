@@ -127,6 +127,27 @@ func GetGetter(name string) (*Getter, error) {
 
 This makes it a lot easier to get data in different ways (e.g from SQL, mongodb or redis). These getters are defined in getters/getters.go and are registered in handles/handles.go when we register our route handlers.
 
+# SSL/TLS
+
+In the year 2015, encryption is very necessary, even standard. This is very easy in Golang's case since it provides
+```http.ListenAndServeTLS()``` which is just like ```http.ListenAndServe()``` but takes two additional arguments:
+
+from the Golang wiki:
+
+```func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error```
+> Filenames containing a certificate and matching private key for the server must be provided. If the certificate is signed by a certificate authority, the certFile should be the concatenation of the server's certificate followed by the CA's certificate.
+
+So it's as simple as:
+
+```
+if err := http.ListenAndServeTLS(":"+*Opts.port, *Opts.certPath, *Opts.certKey, nil); err != nil {
+	panic(err)
+}
+```
+
+Just get the required paths and arguments by using the ```flag``` package, pass them to this function
+and we're up and serving over a secure connection.
+
 # Conclusion
 This was actually a spur of the moment idea, and something I've toyed with before but never really felt I had accomplished
 anything with any other language or framework. In Golang this was very easy and simple, even with my limited time in go I was
