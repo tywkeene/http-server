@@ -13,7 +13,7 @@ type DocCache struct {
 	docs  map[string]*template.Template //map of documents in 'path', indexed by filename
 	size  int64                         //Size of the document in bytes
 	count int                           //Amount of documents in the cache
-	path  string                        //Path to the document directory
+	Path  string                        //Path to the document directory
 }
 
 var Docs *DocCache // Represents the global document cache
@@ -27,36 +27,55 @@ func InitCache(path string) error {
 	}
 }
 
-//Allocated a new DocCache with path 'path'
+//Allocates a new DocCache with path 'path'
 func NewDocCache(path string) *DocCache {
 	return &DocCache{make(map[string]*template.Template), 0, 0, path}
 }
 
 //Builds a cache of documents from the files in the 'docDir' path
 func (cache *DocCache) BuildCache() error {
-	log.Println("Building document cache from", cache.path)
+	log.Println("Building document cache from", cache.Path)
 
-	list, err := ioutil.ReadDir(cache.path)
+	list, err := ioutil.ReadDir(cache.Path)
 	if err != nil {
 		return err
 	}
 
 	for _, file := range list {
+		if strings.HasSuffix(file.Name(), ".html") == false {
+			log.Println("\t!! Ignore:", file.Name())
+			continue
+		}
 		log.Println("\t++ Cache:", file.Name())
 		cache.CacheDoc(file.Name())
 	}
 
-	log.Println("\t!! Cached", cache.count, "file(s) (", cache.size, " bytes) in", cache.path)
+	log.Println("\t!! Cached", cache.count, "file(s) (", cache.size, " bytes) in", cache.Path)
+	return nil
+}
+
+func (cache *DocCache) RefreshDoc(name string) error {
+	log.Println("\t!! Refreshing modified document:", name)
+	if cache.IsCached(name) == false {
+		return errors.New("Document does not exist in cache")
+	} else {
+		delete(cache.docs, name)
+		data, err := ioutil.ReadFile(cache.Path + name)
+		if err != nil {
+			return err
+		}
+
+		cache.docs[name], err = template.New(name).Parse(string(data))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 //Adds the document 'name' to the cache
 func (cache *DocCache) CacheDoc(name string) error {
-	if strings.HasSuffix(name, ".html") == false {
-		log.Println("\t!! Ignore:", name)
-		return errors.New("Refusing to cache non .html file")
-	}
-	data, err := ioutil.ReadFile(cache.path + name)
+	data, err := ioutil.ReadFile(cache.Path + name)
 	if err != nil {
 		return err
 	}
@@ -65,7 +84,8 @@ func (cache *DocCache) CacheDoc(name string) error {
 	if err != nil {
 		return err
 	}
-	stat, _ := os.Stat(cache.path + name)
+
+	stat, _ := os.Stat(cache.Path + name)
 	cache.size += stat.Size()
 	cache.count++
 	return nil

@@ -5,6 +5,7 @@ import (
 	"github.com/SaviorPhoenix/http-server/cache"
 	"github.com/SaviorPhoenix/http-server/data"
 	"github.com/SaviorPhoenix/http-server/handles"
+	"github.com/SaviorPhoenix/http-server/refresh"
 	"log"
 	"net/http"
 )
@@ -46,6 +47,13 @@ func init() {
 		panic(err)
 	}
 
+	if err := refresh.InitCacheWatch(cache.Docs); err != nil {
+		panic(err)
+	}
+
+	if err := refresh.Watch.WatchCache(); err != nil {
+		panic(err)
+	}
 }
 
 func main() {
