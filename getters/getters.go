@@ -33,3 +33,9 @@ func LinkGetterTwo(input interface{}) interface{} {
 	log.Println("\t** LinkGetterTwo() data:", data)
 	return data
 }
+
+func FourOhFour(input interface{}) interface{} {
+	data := &LinkData{"404", "That page doesn't exist"}
+	log.Println("\t** fourOhfour() data:", data)
+	return data
+}

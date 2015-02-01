@@ -15,6 +15,7 @@ func Register() {
 	data.RegisterGetter("index.html", getters.RootGetter)
 	data.RegisterGetter("link1.html", getters.LinkGetterOne)
 	data.RegisterGetter("link2.html", getters.LinkGetterTwo)
+	data.RegisterGetter("404.html", getters.FourOhFour)
 
 	//Catch all handler
 	http.HandleFunc("/", RootHandle)
@@ -25,7 +26,7 @@ func Register() {
 
 //Handles static file requests.
 func StaticHandle(res http.ResponseWriter, req *http.Request) {
-	log.Println("<< GET /static -", req.UserAgent())
+	log.Printf("<< GET /%s - %s", req.URL.Path[1:], req.UserAgent())
 	http.ServeFile(res, req, req.URL.Path[1:])
 }
 
@@ -36,7 +37,7 @@ func RootHandle(res http.ResponseWriter, req *http.Request) {
 	var reply *template.Template
 	var docName string
 
-	log.Println("<< GET / -", req.UserAgent())
+	log.Printf("<< GET /%s - %s\n", req.URL.Path[1:], req.UserAgent())
 
 	if req.URL.Path[1:] == "" {
 		docName = "index.html"
