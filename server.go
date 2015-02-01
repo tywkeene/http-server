@@ -15,6 +15,7 @@ type Options struct {
 	useTls   *bool
 	certPath *string
 	certKey  *string
+	refresh  *bool
 }
 
 var Opts *Options
@@ -25,6 +26,7 @@ func init() {
 		flag.Bool("use-tls", false, "Use SSL/TLS (https)"),
 		flag.String("cert", "./cert.pem", "Path to a signed SSL/TLS certificate"),
 		flag.String("cert-key", "./key.pem", "Path to the key associated with the signed SSL/TLS certificate"),
+		flag.Bool("refresh", true, "Automatically refresh modified documents in ./docs"),
 	}
 	flag.Parse()
 
@@ -47,12 +49,13 @@ func init() {
 		panic(err)
 	}
 
-	if err := refresh.InitCacheWatch(cache.Docs); err != nil {
-		panic(err)
-	}
-
-	if err := refresh.Watch.WatchCache(); err != nil {
-		panic(err)
+	if *Opts.refresh == true {
+		if err := refresh.InitCacheWatch(cache.Docs); err != nil {
+			panic(err)
+		}
+		if err := refresh.Watch.WatchCache(); err != nil {
+			panic(err)
+		}
 	}
 }
 
