@@ -39,7 +39,7 @@ func (watchCache *CacheWatch) WatchCache() error {
 			select {
 			case event := <-watchCache.watcher.Event:
 				_, name := filepath.Split(event.Name)
-				if strings.HasSuffix(name, ".html") {
+				if strings.HasSuffix(name, ".html") != true {
 					log.Println("Ignoring document:", name)
 					continue
 				}
