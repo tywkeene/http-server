@@ -4,12 +4,12 @@ disk friendly by reading documents into memory and serving them from there. It w
 also search for a file on the disk if it doesn't exist in the cache, and caches it if
 it has appeared. It doesn't return 404 unless the file really _really_ doesn't exist.
 
-## Implementation
+## Cache Implementation
 It's rather simple, really.
 
 First we need an appropriate data structure. I chose golang's map type since it's well
 suited for 'looking things up' by name. We wrap this map in a simple struct like so:
-```
+```Go
 type DocCache struct {
         docs  map[string]string //map of documents in 'path', indexed by filename
         size  int64             //Size of the document in bytes
@@ -30,16 +30,62 @@ However, these could be used to limit the size and count of files read into the 
 of what I was trying to accomplish in this project
 
 ## Automatic Document Refreshing
-Another great feature would be to watch the document directory for changes made to the documents themselves, and
-refresh the cache. This could be done with inotify (which golang already has a great package for) and a little bit
-of tinkering
+One problem arises when you store all your documents in the cache. Since we read the documents into
+memory at runtime, we can't update them later without restarting the server since we don't read the files
+every time they're served, which means we'd have to restart the server every time we make a change. This is not
+ideal and almost makes the cache useless.
 
-This would really make this little server great, since you could use it to quickly and efficiently prototype
-webpages without the need to reload the server every time you make a change. I Plan on implementing this, so stay tuned.
+This is where inotify comes in. [Inotify] (http://en.wikipedia.org/wiki/Inotify) is a great feature of the Linux
+kernel that allows us to watch files for events. We can use this to make our server a little more nimble by watching
+the document directory for changes and refreshing the cache when they occur. Golang already has a [package](https://godoc.org/golang.org/x/exp/inotify)
+that makes this very simple
+
+First we need a small data structure to hold some needed information:
+```Go
+type CacheWatch struct {
+	target *cache.DocCache // The document cache from cache/cache.go
+	mask uint32	       // The mask we pass to inotify
+	watcher *inotify.Watcher // The inotify watcher
+}
+```
+
+We can then pass all of this to the inotify package, and get ourselves a watch:
+```Go
+if err := watchCache.watcher.AddWatch(watchCache.target.Path, watchCache.mask); err != nil {
+	return err
+}
+```
+
+Finally, we run a simple loop wrapped in a go routine and act on the events:
+```Go
+go func(watchCache *CacheWatch) {
+	for {
+		select {
+		case event := <-watchCache.watcher.Event:
+			_, name := filepath.Split(event.Name)
+			if strings.HasSuffix(name, ".html") {
+				log.Println("Ignoring document:", name)
+				continue
+			}
+			if event.Mask&watchCache.mask != 0 && watchCache.target.IsCached(name) == true {
+				log.Println("\t~~ Document modified:", name)
+				if err := cache.Docs.RefreshDoc(name); err != nil {
+					log.Println(err)
+				}
+			}
+		case err := <-watchCache.watcher.Error:
+			log.Println(err)
+		}
+	}
+}(watchCache)
+```
+
+Now we can run our server, make changes to the files in the document cache and have our changes show up on refresh
+This will make it much easier to quickly and efficiently prototype pages.
 
 ## Handling Requests
 Another dead simple solution.
-```
+```Go
 func RootHandle(res http.ResponseWriter, req *http.Request) {
 	var reply *template.Template
 	var docName string
@@ -76,7 +122,7 @@ The way I see it is we can create "data getters" and register them with each doc
 ## Static Files
 No website is complete without a good stylesheet, maybe some images and javascript for good measure.
 This is super easy:
-```
+```Go
 func StaticHandle(res http.ResponseWriter, req *http.Request) {
 	log.Println("<< GET /static -", req.UserAgent())
 	http.ServeFile(res, req, req.URL.Path[1:])
@@ -92,7 +138,7 @@ that different pages need different data, and that data might need to be retriev
 
 We can solve this little problem with a simple struct and a global variable that holds the structs:
 
-```
+```Go
 type Getter struct {
 	Name string
 	Get  GetterFunc
@@ -102,7 +148,7 @@ var Getters map[string]*Getter
 ```
 
 To register a data-getter, we can simple make sure it doesn't already exist, then add it to the map:
-```
+```Go
 func RegisterGetter(name string, get GetterFunc) error {
 	if getterExists(name) == true {
 		return fmt.Errorf("Data-getter already exists for document: %s", name)
@@ -115,7 +161,7 @@ func RegisterGetter(name string, get GetterFunc) error {
 ```
 
 and to grab one of these data-getters:
-```
+```Go
 func GetGetter(name string) (*Getter, error) {
 	if getterExists(name) == false {
 		return nil, fmt.Errorf("No data-getter exists for document: %s", name)
@@ -139,7 +185,7 @@ from the Golang wiki:
 
 So it's as simple as:
 
-```
+```Go
 if err := http.ListenAndServeTLS(":"+*Opts.port, *Opts.certPath, *Opts.certKey, nil); err != nil {
 	panic(err)
 }
