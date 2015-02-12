@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -85,7 +86,7 @@ func (cache *DocCache) CacheDoc(name string) error {
 		return err
 	}
 
-	stat, _ := os.Stat(cache.Path + name)
+	stat, _ := os.Stat(filepath.Join(cache.Path, name))
 	cache.size += stat.Size()
 	cache.count++
 	return nil
