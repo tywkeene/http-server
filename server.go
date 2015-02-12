@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/SaviorPhoenix/http-server/cache"
+	"github.com/SaviorPhoenix/http-server/config"
 	"github.com/SaviorPhoenix/http-server/data"
 	"github.com/SaviorPhoenix/http-server/handles"
 	"github.com/SaviorPhoenix/http-server/refresh"
@@ -10,31 +11,35 @@ import (
 	"net/http"
 )
 
-type Options struct {
-	port     *string
-	useTls   *bool
-	certPath *string
-	certKey  *string
-	refresh  *bool
-}
-
-var Opts *Options
+var Conf *config.Conf
 
 func init() {
-	Opts = &Options{
-		flag.String("port", "", "Bind port (Default 80 for HTTP, 443 for HTTPS)"),
-		flag.Bool("use-tls", false, "Use SSL/TLS (https)"),
-		flag.String("cert", "./cert.pem", "Path to a signed SSL/TLS certificate"),
-		flag.String("cert-key", "./key.pem", "Path to the key associated with the signed SSL/TLS certificate"),
-		flag.Bool("refresh", true, "Automatically refresh modified documents in ./docs"),
-	}
+	var confFile string
+	var err error
+
+	Conf = &config.Conf{}
+	flag.StringVar(&confFile, "config", "", "Path to a .toml config file (overrides command line arguments)")
+	flag.StringVar(&Conf.Options.BindPort, "port", "", "Bind port (Default 80 for HTTP, 443 for HTTPS)")
+	flag.StringVar(&Conf.Options.Cert, "cert", "./cert.pem", "Path to a signed SSL/TLS certificate")
+	flag.StringVar(&Conf.Options.CertKey, "cert-key", "./key.pem", "Path to the key associated with the signed SSL/TLS certificate")
+	flag.StringVar(&Conf.Options.DocDir, "doc-dir", "./docs/", "Path to the directory containing the documents to serve")
+	flag.BoolVar(&Conf.Options.Refresh, "refresh", true, "Automatically Refresh modified documents in ./docs")
+	flag.BoolVar(&Conf.Options.UseTls, "use-tls", false, "Use SSL/TLS (https)")
 	flag.Parse()
 
+	//Settings from a configuration file override the command line arguments
+	if confFile != "" {
+		log.Println("Configuration file overriding command line arguments")
+		Conf, err = config.ParseConfig(confFile)
+		if err != nil {
+			panic(err)
+		}
+	}
 	//Set the default port depending on if we're serving HTTP or HTTPS
-	if *Opts.useTls == true && *Opts.port == "" {
-		*Opts.port = "443"
-	} else if *Opts.useTls == false && *Opts.port == "" {
-		*Opts.port = "80"
+	if Conf.Options.UseTls == true && Conf.Options.BindPort == "" {
+		Conf.Options.BindPort = "443"
+	} else if Conf.Options.UseTls == false && Conf.Options.BindPort == "" {
+		Conf.Options.BindPort = "80"
 	}
 
 	//Initialize the data-getter map for the documents
@@ -45,11 +50,11 @@ func init() {
 
 	//We can't do much if we don't have a document cache, so panic
 	// if we fail to get one
-	if err := cache.InitCache("./docs/"); err != nil {
+	if err := cache.InitCache(Conf.Options.DocDir); err != nil {
 		panic(err)
 	}
 
-	if *Opts.refresh == true {
+	if Conf.Options.Refresh == true {
 		if err := refresh.InitCacheWatch(cache.Docs); err != nil {
 			panic(err)
 		}
@@ -60,14 +65,14 @@ func init() {
 }
 
 func main() {
-	if *Opts.useTls == true {
-		log.Println("Accepting HTTPS on port:", *Opts.port)
-		if err := http.ListenAndServeTLS(":"+*Opts.port, *Opts.certPath, *Opts.certKey, nil); err != nil {
+	if Conf.Options.UseTls == true {
+		log.Println("Accepting HTTPS on port:", Conf.Options.BindPort)
+		if err := http.ListenAndServeTLS(":"+Conf.Options.BindPort, Conf.Options.Cert, Conf.Options.CertKey, nil); err != nil {
 			panic(err)
 		}
 	} else {
-		log.Println("Accepting HTTP on port:", *Opts.port)
-		if err := http.ListenAndServe(":"+*Opts.port, nil); err != nil {
+		log.Println("Accepting HTTP on port:", Conf.Options.BindPort)
+		if err := http.ListenAndServe(":"+Conf.Options.BindPort, nil); err != nil {
 			panic(err)
 		}
 	}

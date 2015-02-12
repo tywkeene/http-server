@@ -1,0 +1,7 @@
+[options]
+    doc_path = "./docs"
+    cert_path = "./cert.pem"
+    cert_key_path = "./cert.pem"
+    bind_port = "8080"
+    use_tls = true
+    refresh = true
