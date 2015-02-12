@@ -61,7 +61,7 @@ func (cache *DocCache) RefreshDoc(name string) error {
 		return errors.New("Document does not exist in cache")
 	} else {
 		delete(cache.docs, name)
-		data, err := ioutil.ReadFile(cache.Path + name)
+		data, err := ioutil.ReadFile(filepath.Join(cache.Path, name))
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func (cache *DocCache) RefreshDoc(name string) error {
 
 //Adds the document 'name' to the cache
 func (cache *DocCache) CacheDoc(name string) error {
-	data, err := ioutil.ReadFile(cache.Path + name)
+	data, err := ioutil.ReadFile(filepath.Join(cache.Path, name))
 	if err != nil {
 		return err
 	}
