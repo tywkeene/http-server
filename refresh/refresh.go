@@ -40,11 +40,9 @@ func (watchCache *CacheWatch) WatchCache() error {
 			case event := <-watchCache.watcher.Event:
 				_, name := filepath.Split(event.Name)
 				if strings.HasSuffix(name, ".html") != true {
-					log.Println("Ignoring document:", name)
 					continue
 				}
 				if event.Mask&watchCache.mask != 0 && watchCache.target.IsCached(name) == true {
-					log.Println("\t~~ Document modified:", name)
 					if err := cache.Docs.RefreshDoc(name); err != nil {
 						log.Println(err)
 					}
