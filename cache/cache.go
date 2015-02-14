@@ -100,7 +100,7 @@ func (cache *DocCache) IsCached(name string) bool {
 
 //Returns true if doc 'name' is on disk, false otherwise
 func (cache *DocCache) IsOnDisk(name string) bool {
-	_, err := os.Stat(name)
+	_, err := os.Stat(filepath.Join(cache.Path, name))
 	return err == nil
 }
 
