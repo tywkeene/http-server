@@ -134,5 +134,4 @@ func (cache *DocCache) GetDoc(name string) *template.Template {
 		log.Println("\t", name, "-- Not cached/Not on disk")
 		return nil
 	}
-	return nil
 }
