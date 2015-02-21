@@ -41,8 +41,10 @@ func RootHandle(res http.ResponseWriter, req *http.Request) {
 
 	if req.URL.Path[1:] == "" {
 		docName = "index.html"
-	} else {
+	} else if cache.Docs.Exists(req.URL.Path[1:]) == true {
 		docName = req.URL.Path[1:]
+	} else {
+		docName = "404.html"
 	}
 	reply = cache.Docs.GetDoc(docName)
 

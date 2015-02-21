@@ -104,6 +104,10 @@ func (cache *DocCache) IsOnDisk(name string) bool {
 	return err == nil
 }
 
+func (cache *DocCache) Exists(name string) bool {
+	return cache.IsOnDisk(name) || cache.IsCached(name)
+}
+
 //Looks for the document 'name' in the cache, then on the disk, then gives up and returns 404
 // If the document is found in the cache it returns the document immediately
 // If the document isn't in the cache, but on the disk, the document is read and
