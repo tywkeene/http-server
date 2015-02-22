@@ -2,6 +2,7 @@ package cache
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -25,10 +26,20 @@ func getCacheInfo(docDir string) (int64, int) {
 
 func TestInitCache(t *testing.T) {
 	const docDir = "../docs"
+	const badDocDir = "../ducks"
+	const badDoc = "bad.txt"
+
+	if err := InitCache(badDocDir); err == nil {
+		t.Fatal("Recieved no error when attempting to build cache from bogus directory")
+	}
+
+	//Create a bogus document in the cache directory to test that we ignore bad documents
+	CreateDocument(docDir, badDoc)
 
 	if err := InitCache(docDir); err != nil {
 		t.Fatal("Failed to initialize document cache in", docDir)
 	}
+	os.Remove(docDir + "/" + badDoc)
 
 	//Ensure we recieved an initialized Doc structure
 	if Docs == nil {
@@ -37,6 +48,15 @@ func TestInitCache(t *testing.T) {
 	//Ensure the cache was actually filled by Docs.BuildCache()
 	if Docs.docs == nil {
 		t.Fatal("Document cache should not be nil")
+	}
+
+	//Ensure we have all of the documents are in the cache and they aren't nil
+	var expectDocs = []string{"404.html", "index.html", "link1.html", "link2.html"}
+
+	for _, name := range expectDocs {
+		if Docs.Exists(name) != true {
+			t.Fatal("Non-existent document on disk or cache", name)
+		}
 	}
 
 	expectedSize, expectedCount := getCacheInfo(docDir)
@@ -53,11 +73,19 @@ func TestInitCache(t *testing.T) {
 	}
 }
 
+func TestCacheDoc(t *testing.T) {
+	const badDoc = "bad.html"
+	if Docs.CacheDoc(badDoc) == nil {
+		t.Fatal("Did not recieve error when attempting to cache non-existent document")
+	}
+}
+
 //Simply create a dummy document
 func CreateDocument(docDir string, docName string) {
-	file, _ := os.Create(docDir + "/" + "test.html")
+	file, _ := os.Create(docDir + "/" + docName)
 	defer file.Close()
 	file.WriteString(string("<html>test</html>"))
+	log.Println("Created dummy document", docDir+"/"+docName)
 }
 
 func TestGetDoc(t *testing.T) {
@@ -86,8 +114,15 @@ func TestGetDoc(t *testing.T) {
 
 func TestRefreshDoc(t *testing.T) {
 	const docName = "index.html"
+	const badDoc = "notthere.html"
 
+	//Ensure we can refresh an existing document
 	if err := Docs.RefreshDoc(docName); err != nil {
 		t.Fatalf("Failed to refresh document %s in %s", docName, Docs.Path)
+	}
+
+	//Ensure we get an error if we try to refresh a phantom document
+	if err := Docs.RefreshDoc(badDoc); err == nil {
+		t.Fatal("Did not recieve error when attempting to refresh non-existent document")
 	}
 }
