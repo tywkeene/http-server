@@ -42,7 +42,7 @@ func (watchCache *CacheWatch) WatchCache() error {
 				if strings.HasSuffix(name, ".html") != true {
 					continue
 				}
-				if event.Mask&watchCache.mask != 0 && watchCache.target.IsCached(name) == true {
+				if event.Mask&watchCache.mask != 0 {
 					if err := cache.Docs.RefreshDoc(name); err != nil {
 						log.Println(err)
 					}
