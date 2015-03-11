@@ -1,6 +1,12 @@
 #!/bin/bash
 #Somewhat copied from https://gist.github.com/hailiang/0f22736320abe6be71ce
 
+if [ -z "$1" ]; then
+    printf "Usage: $0 -r <Test for race conditions>\n"
+    printf "\t\t -c <Generate and open a test coverage report in a browser>\n"
+    exit 1
+fi
+
 while getopts "rc" FLAG; do
     case $FLAG in
         r)
