@@ -1,4 +1,7 @@
 # http-server
+
+[![Build Status](https://travis-ci.org/SaviorPhoenix/http-server.svg)](https://travis-ci.org/SaviorPhoenix/http-server)
+
 http-server is a simple http-server in golang. It tries to be more efficient and
 disk friendly by reading documents into memory and serving them from there. It will
 also search for a file on the disk if it doesn't exist in the cache, and caches it if
@@ -20,7 +23,7 @@ type DocCache struct {
 
 First we have the ```docs``` variable which is the map we talked about. This is a simple
 name->data map. It's indexed by filename for convienence and stores a string representation of
-the document we can write to a ```http.request``` writer. 
+the document we can write to a ```http.request``` writer.
 
 When we want to fill this cache at startup, we step through the document directory
 ```path``` and enumerate each of the documents, storing them in this cache.
@@ -132,8 +135,8 @@ See? All we have to do is use ```http.ServeFile()``` to return the contents of t
 Short and sweet.
 
 ## Getting data with data-getters
-Webpages are very data-driven. What's a webpage without data? Sure you technically *could* hardcode things into the 
-raw html file, but this is 2015, not the 90's.I've come up with a solution. The first thing that occured to me was 
+Webpages are very data-driven. What's a webpage without data? Sure you technically *could* hardcode things into the
+raw html file, but this is 2015, not the 90's.I've come up with a solution. The first thing that occured to me was
 that different pages need different data, and that data might need to be retrieved in different ways. This is another great use for the all-powerful map data structure (no language should be without it).
 
 We can solve this little problem with a simple struct and a global variable that holds the structs:
