@@ -1,10 +1,12 @@
 package handles
 
 import (
+	"encoding/json"
 	"github.com/tywkeene/http-server/cache"
 	"github.com/tywkeene/http-server/data"
 	"github.com/tywkeene/http-server/getters"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 )
@@ -22,6 +24,24 @@ func Register() {
 
 	//For static images/stylesheets/files
 	http.HandleFunc("/static/", StaticHandle)
+
+	Metrics = make(map[string]int)
+	Metrics["OK"] = 0
+	Metrics["NotFound"] = 0
+}
+
+var Metrics map[string]int
+
+func incrementMetric(name string) {
+	if _, exists := Metrics[name]; exists == false {
+		return
+	}
+	Metrics[name]++
+	log.Printf("%s: %d\n", name, Metrics[name])
+}
+
+func GetMetrics() map[string]int {
+	return Metrics
 }
 
 //Handles static file requests.
@@ -39,11 +59,25 @@ func RootHandle(res http.ResponseWriter, req *http.Request) {
 
 	log.Printf("<< GET /%s - %s\n", req.URL.Path[1:], req.UserAgent())
 
+	if req.URL.Path[1:] == "metrics" {
+		metrics := GetMetrics()
+		serial, err := json.Marshal(&metrics)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		io.WriteString(res, string(serial))
+		return
+	}
+
 	if req.URL.Path[1:] == "" {
+		incrementMetric("OK")
 		docName = "index.html"
 	} else if cache.Docs.Exists(req.URL.Path[1:]) == true {
 		docName = req.URL.Path[1:]
+		incrementMetric("OK")
 	} else {
+		incrementMetric("NotFound")
 		docName = "404.html"
 	}
 	reply = cache.Docs.GetDoc(docName)
