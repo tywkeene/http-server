@@ -1,9 +1,9 @@
 package handles
 
 import (
-	"github.com/SaviorPhoenix/http-server/cache"
-	"github.com/SaviorPhoenix/http-server/data"
-	"github.com/SaviorPhoenix/http-server/getters"
+	"github.com/tywkeene/http-server/cache"
+	"github.com/tywkeene/http-server/data"
+	"github.com/tywkeene/http-server/getters"
 	"html/template"
 	"log"
 	"net/http"

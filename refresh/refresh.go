@@ -1,7 +1,7 @@
 package refresh
 
 import (
-	"github.com/SaviorPhoenix/http-server/cache"
+	"github.com/tywkeene/http-server/cache"
 	"golang.org/x/exp/inotify"
 	"log"
 	"path/filepath"

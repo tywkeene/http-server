@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/SaviorPhoenix/http-server/cache"
-	"github.com/SaviorPhoenix/http-server/config"
-	"github.com/SaviorPhoenix/http-server/data"
-	"github.com/SaviorPhoenix/http-server/handles"
-	"github.com/SaviorPhoenix/http-server/refresh"
+	"github.com/tywkeene/http-server/cache"
+	"github.com/tywkeene/http-server/config"
+	"github.com/tywkeene/http-server/data"
+	"github.com/tywkeene/http-server/handles"
+	"github.com/tywkeene/http-server/refresh"
 	"log"
 	"net/http"
 )

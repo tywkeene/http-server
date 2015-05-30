@@ -1,6 +1,6 @@
 # http-server
 
-[![Build Status](https://travis-ci.org/SaviorPhoenix/http-server.svg)](https://travis-ci.org/SaviorPhoenix/http-server)
+[![Build Status](https://travis-ci.org/tywkeene/http-server.svg)](https://travis-ci.org/tywkeene/http-server)
 
 http-server is a simple http-server in golang. It tries to be more efficient and
 disk friendly by reading documents into memory and serving them from there. It will
